@@ -25,15 +25,20 @@ class LunchViewModel: ObservableObject {
         )
         
         let filteredSpots = allSpots.filter { spot in
-            (filter.budgetRange?.range.contains(spot.averageBill) ?? true) &&
-            (filter.selectedCuisines.isEmpty || filter.selectedCuisines.contains(spot.cuisine)) &&
-            (filter.maxWaitingTime.map { spot.waitingTime <= $0 } ?? true)
+            let priceMatch = (filter.budgetRange?.range.contains(spot.averageBill) ?? true)
+            let cuisineMatch = (filter.selectedCuisines.isEmpty || filter.selectedCuisines.contains(spot.cuisine))
+            let timeMatch = (filter.maxWaitingTime.map { spot.waitingTime <= $0 } ?? true)
+            
+            return priceMatch && cuisineMatch && timeMatch
         }
+
         
         if let spot = filteredSpots.randomElement() {
             currentSpot = spot
             history.append(spot)
             LunchHistoryManager.shared.save(history)
+        } else {
+            currentSpot = nil
         }
         
     }

@@ -36,13 +36,32 @@ enum Cuisine: String, Codable, CaseIterable, Identifiable {
                 return "Turkish"
         }
     }
+    
+    var emoji: String {
+        switch self {
+            case .national:
+                return "🍲"
+            case .korean:
+                return "🍚"
+            case .japanese:
+                return "🍣"
+            case .chinese:
+                return "🥡"
+            case .italian:
+                return "🍝"
+            case .french:
+                return "🥖"
+            case .turkish:
+                return "🥙"
+        }
+    }
 }
 
 enum PriceRange: String, CaseIterable, Identifiable {
-    case low = "<5000"
-    case medium = "5000-12000"
-    case high = "12000-25000"
-    case luxury = "25000<"
+    case low = "Менее 5.000"
+    case medium = "5.000 - 12.000"
+    case high = "12.000 - 25.000"
+    case luxury = "25.000 и более"
     
     var id: Self { self }
     
@@ -58,4 +77,9 @@ enum PriceRange: String, CaseIterable, Identifiable {
             return 25000...Double.infinity
         }
     }
+}
+
+enum ScourceView {
+    case history
+    case random
 }

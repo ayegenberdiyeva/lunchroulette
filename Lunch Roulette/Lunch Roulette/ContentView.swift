@@ -15,92 +15,175 @@ struct ContentView: View {
     
     @State private var isNavigating = false
     @State private var selectedSpot: LunchSpot? = nil
+    @State private var searchAttemted: Bool = false
 
     var body: some View {
         NavigationStack {
-            VStack(spacing: 20) {
+            VStack(spacing: 24) {
                 
-                VStack(alignment: .leading) {
-                    Text("Price range")
-                        .font(.title)
-                    Picker("Price", selection: $selectedPrice) {
-                        ForEach(PriceRange.allCases) { price in Text(price.rawValue).tag(price)
-                        }
+                HStack {
+                    
+                    VStack{
+                        SectionTitle(title: "Средний чек")
+                            .frame(alignment: .top)
+                         FlowButtons(options: PriceRange.allCases.map {$0.rawValue},
+                                     selected: selectedPrice.rawValue,
+                                     action: { value in
+                                         if let price = PriceRange(rawValue: value) {
+                                             selectedPrice = price
+                                         }
+                                     })
                     }
-                    .pickerStyle(.segmented)
-                }
-                
-                VStack(alignment: .leading){
-                    Text("Cousine")
-                        .font(.title)
-                    LazyVGrid(columns: [GridItem(.adaptive(minimum: 80))], spacing: 10) {
-                            ForEach(Cuisine.allCases) { cuisine in
-                                Button(action: {
-                                    if selectedCuisines.contains(cuisine) {
-                                        selectedCuisines.removeAll { $0 == cuisine }
-                                    } else {
-                                        selectedCuisines.append(cuisine)
-                                    }
-                                }) {
-                                    Text(cuisine.rawValue)
-                                        .padding(8)
-                                        .frame(maxWidth: .infinity)
-                                        .background(selectedCuisines.contains(cuisine) ? Color.blue : Color.gray.opacity(0.3))
-                                        .foregroundColor(.white)
-                                        .cornerRadius(10)
+                    .frame(maxWidth: .infinity, alignment: .center)
+                    
+                    Divider()
+                    
+                    VStack{
+                        SectionTitle(title: "Кухня")
+                        FlowButtons(options: Cuisine.allCases.map { $0.rawValue},
+                                    selected: selectedCuisines.map { $0.rawValue},
+                                    multiSelect: true,
+                                    action: { value in
+                            if let cuisine = Cuisine(rawValue: value) {
+                                if selectedCuisines.contains(cuisine) {
+                                    selectedCuisines.removeAll { $0 == cuisine }
+                                } else {
+                                    selectedCuisines.append(cuisine)
                                 }
                             }
-                        }
-                }
-                
-                VStack(alignment: .leading) {
-                    Text("Waiting time")
-                        .font(.title)
-                    Picker("Time", selection: $selectedWaitingTime) {
-                        ForEach([15, 30, 45, 60], id: \.self) {
-                            i in Text("\(i) minutes").tag(i)
-                        }
+                        })
                     }
-                    .pickerStyle(.segmented)
+                    .frame(maxWidth: .infinity, alignment: .center)
                 }
                 
-                // Filter
+                SectionTitle(title: "Время ожидания")
+                WaitingTimePicker(selected: $selectedWaitingTime)
                 
-
-//                 Button
-                
-                
-                
-                Button("Get Lunch Place") {
+                Button(action: {
+                    searchAttemted = true
+                    
                     vm.fetchRandomSpot(
                         selectedPriceRange: selectedPrice,
                         selectedCuisines: selectedCuisines,
                         selectedMaxWaitingTime: selectedWaitingTime
                     )
                     if let spot = vm.currentSpot {
-                        selectedSpot =  spot
+                        selectedSpot = spot
                     }
-                }
-                .buttonStyle(.borderedProminent)
-
-                // Show result
-//                if let spot = vm.currentSpot {
-//                    LunchCard(spot: spot)
-//                }
-
-                NavigationLink("View History") {
-                    HistoryView(spots: vm.history)
+                }) {
+                    Text("ВЫБРАТЬ ЗАВЕДЕНИЕ")
+                            .frame(maxWidth: .infinity)
+                            .padding()
+                            .background(Color.orange)
+                            .foregroundColor(.white)
+                            .fontWeight(.bold)
+                            .cornerRadius(16)
                 }
                 .padding(.top)
+                
+                
+                if searchAttemted && vm.currentSpot == nil {
+                    Text("Упс! Пока что нет заведения по вашим предпочтениям")
+                        .foregroundColor(.gray)
+                        .padding(.top, 8)
+
+                }
+
+                NavigationLink("посмотреть историю") {
+                    HistoryView(spots: vm.history)
+                }
+                    .font(.subheadline)
+                    .foregroundColor(.black)
+                    .padding(.top, 8)
+                    .underline(true)
+                    .frame(alignment: .bottom)
+                
+                Spacer()
             }
             .padding()
             .navigationTitle("Lunch Roulette")
             .navigationDestination(item: $selectedSpot) {
-                spot in LunchCard(spot: spot)
+                spot in LunchCard(spot: spot, scourceView: .random)
             }
         }
     }
 }
+
+struct SectionTitle: View {
+    let title: String
+    var body: some View {
+        Text(title)
+            .font(.headline)
+            .frame(maxWidth: .infinity)
+    }
+}
+
+struct FlowButtons: View {
+    var options: [String]
+    var selected: [String]
+    var multiSelect = false
+    var action: (String) -> Void
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+//            LazyVGrid(columns: [GridItem(.adaptive(minimum: 100, maximum: 200))], spacing: 8) {
+            VStack(spacing: 8) {
+                ForEach(options, id: \.self) { option in
+                    Button(action: { action(option) }) {
+                        Text(option)
+                            .padding(.vertical, 7)
+                            .padding(.horizontal, 15)
+                            .background(selected.contains(option) ? Color.orange : Color.gray.opacity(0.2))
+                            .foregroundColor(.black)
+                            .clipShape(Capsule())
+                            .lineLimit(1)
+                    }
+                    .frame(maxWidth: .infinity)
+                }
+            }
+        }
+    }
+
+    init(options: [String], selected: String, multiSelect: Bool = false, action: @escaping (String) -> Void) {
+        self.options = options
+        self.selected = [selected]
+        self.multiSelect = multiSelect
+        self.action = action
+    }
+
+    init(options: [String], selected: [String], multiSelect: Bool = true, action: @escaping (String) -> Void) {
+        self.options = options
+        self.selected = selected
+        self.multiSelect = multiSelect
+        self.action = action
+    }
+}
+
+struct WaitingTimePicker: View {
+    @Binding var selected: Int
+    let options = [15, 30, 45, 60]
+
+    var body: some View {
+        HStack(spacing: 16) {
+            ForEach(options, id: \.self) { time in
+                Button(action: {
+                    selected = time
+                }) {
+                    Text(time == 60 ? "Более 60 мин" : "\(time) мин")
+                        .font(.subheadline)
+                        .padding(18)
+                        .frame(width: 80)
+                        .overlay(
+                            Circle()
+                                .stroke(selected == time ? Color.orange : Color.gray, lineWidth: 2)
+                        )
+                }
+                .foregroundColor(.black)
+            }
+        }
+    }
+}
+
 
 #Preview {
     ContentView()
