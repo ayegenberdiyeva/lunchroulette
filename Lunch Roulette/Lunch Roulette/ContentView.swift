@@ -21,11 +21,10 @@ struct ContentView: View {
         NavigationStack {
             VStack(spacing: 24) {
                 
-                HStack {
+                VStack {
                     
                     VStack{
                         SectionTitle(title: "Средний чек")
-                            .frame(alignment: .top)
                          FlowButtons(options: PriceRange.allCases.map {$0.rawValue},
                                      selected: selectedPrice.rawValue,
                                      action: { value in
@@ -35,8 +34,6 @@ struct ContentView: View {
                                      })
                     }
                     .frame(maxWidth: .infinity, alignment: .center)
-                    
-                    Divider()
                     
                     VStack{
                         SectionTitle(title: "Кухня")
@@ -53,7 +50,6 @@ struct ContentView: View {
                             }
                         })
                     }
-                    .frame(maxWidth: .infinity, alignment: .center)
                 }
                 
                 SectionTitle(title: "Время ожидания")
@@ -114,7 +110,8 @@ struct SectionTitle: View {
     var body: some View {
         Text(title)
             .font(.headline)
-            .frame(maxWidth: .infinity)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.top, 25)
     }
 }
 
@@ -127,20 +124,26 @@ struct FlowButtons: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
 //            LazyVGrid(columns: [GridItem(.adaptive(minimum: 100, maximum: 200))], spacing: 8) {
-            VStack(spacing: 8) {
-                ForEach(options, id: \.self) { option in
-                    Button(action: { action(option) }) {
-                        Text(option)
-                            .padding(.vertical, 7)
-                            .padding(.horizontal, 15)
-                            .background(selected.contains(option) ? Color.orange : Color.gray.opacity(0.2))
-                            .foregroundColor(.black)
-                            .clipShape(Capsule())
-                            .lineLimit(1)
+            
+            ScrollView(.horizontal){
+                HStack(spacing: 8) {
+                    ForEach(options, id: \.self) { option in
+                        Button(action: { action(option) }) {
+                            Text(option)
+                                .padding(.vertical, 7)
+                                .padding(.horizontal, 10)
+                                .background(selected.contains(option) ? Color.orange : Color.gray.opacity(0.2))
+                                .foregroundColor(.black)
+                                .clipShape(Capsule())
+                                .lineLimit(1)
+                        }
+                        .padding(2)
                     }
-                    .frame(maxWidth: .infinity)
                 }
             }
+            .padding(.bottom, 25)
+            
+            Divider()
         }
     }
 

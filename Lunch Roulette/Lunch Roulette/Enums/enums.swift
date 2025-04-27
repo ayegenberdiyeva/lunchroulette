@@ -8,13 +8,13 @@
 import Foundation
 
 enum Cuisine: String, Codable, CaseIterable, Identifiable {
-    case national = "National"
-    case korean = "Korean"
-    case japanese = "Japanese"
-    case chinese = "Chinese"
-    case italian = "Italian"
-    case french = "French"
-    case turkish = "Turkish"
+    case national = "Национальная"
+    case korean = "Корейская"
+    case japanese = "Японская"
+    case chinese = "Китайская"
+    case italian = "Итальянская"
+    case french = "Французская"
+    case turkish = "Турецкая"
     
     var id : Self { self }
     
