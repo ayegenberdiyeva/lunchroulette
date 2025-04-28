@@ -9,13 +9,12 @@ import SwiftUI
 
 struct ContentView: View {
     @StateObject var vm = LunchViewModel()
-    @State var selectedPrice: PriceRange = .low
-    @State var selectedCuisines: [Cuisine] = []
+    @State var selectedPrice: PriceRange = .null
+    @State var selectedCuisines: [CuisineFilterType] = []
     @State var selectedWaitingTime: Int = 15
     
-    @State private var isNavigating = false
-    @State private var selectedSpot: LunchSpot? = nil
-    @State private var searchAttemted: Bool = false
+    @State private var navigateToSpot: LunchSpot? = nil
+    @State private var showMissingFiltersAlert: Bool = false
 
     var body: some View {
         NavigationStack {
@@ -37,11 +36,11 @@ struct ContentView: View {
                     
                     VStack{
                         SectionTitle(title: "Кухня")
-                        FlowButtons(options: Cuisine.allCases.map { $0.rawValue},
+                        FlowButtons(options: CuisineFilterType.allCases.map { $0.rawValue},
                                     selected: selectedCuisines.map { $0.rawValue},
                                     multiSelect: true,
                                     action: { value in
-                            if let cuisine = Cuisine(rawValue: value) {
+                            if let cuisine = CuisineFilterType(rawValue: value) {
                                 if selectedCuisines.contains(cuisine) {
                                     selectedCuisines.removeAll { $0 == cuisine }
                                 } else {
@@ -55,53 +54,77 @@ struct ContentView: View {
                 SectionTitle(title: "Время ожидания")
                 WaitingTimePicker(selected: $selectedWaitingTime)
                 
-                Button(action: {
-                    searchAttemted = true
-                    
-                    vm.fetchRandomSpot(
-                        selectedPriceRange: selectedPrice,
-                        selectedCuisines: selectedCuisines,
-                        selectedMaxWaitingTime: selectedWaitingTime
-                    )
-                    if let spot = vm.currentSpot {
-                        selectedSpot = spot
+                VStack{
+                    Button(action: {
+                        if selectedPrice == .null || selectedCuisines.isEmpty || selectedWaitingTime == 0 {
+                            showMissingFiltersAlert = true
+                        } else {
+                            vm.fetchRandomSpot(
+                                selectedPriceRange: selectedPrice,
+                                selectedCuisines: selectedCuisines,
+                                selectedMaxWaitingTime: selectedWaitingTime == 60 ? nil : selectedWaitingTime
+                            )
+                        }
+                    }) {
+                        if vm.isLoading {
+                            ProgressView()
+                                .progressViewStyle(CircularProgressViewStyle(tint: .white))
+                                .frame(maxWidth: .infinity)
+                                .padding()
+                                .background(Color.orange.opacity(0.7))
+                                .foregroundColor(.white)
+                                .fontWeight(.bold)
+                                .cornerRadius(16)
+                        } else {
+                            Text("ВЫБРАТЬ ЗАВЕДЕНИЕ")
+                                .frame(maxWidth: .infinity)
+                                .padding()
+                                .background(Color.orange)
+                                .foregroundColor(.white)
+                                .fontWeight(.bold)
+                                .cornerRadius(16)
+                        }
                     }
-                }) {
-                    Text("ВЫБРАТЬ ЗАВЕДЕНИЕ")
-                            .frame(maxWidth: .infinity)
-                            .padding()
-                            .background(Color.orange)
-                            .foregroundColor(.white)
-                            .fontWeight(.bold)
-                            .cornerRadius(16)
-                }
-                .padding(.top)
-                
-                
-                if searchAttemted && vm.currentSpot == nil {
-                    Text("Упс! Пока что нет заведения по вашим предпочтениям")
-                        .foregroundColor(.gray)
-                        .padding(.top, 8)
+                    .disabled(vm.isLoading)
+                    .padding(.top, 50)
+                    .alert("Подождите", isPresented: $showMissingFiltersAlert) {
+                        Button("ОК", role: .cancel) { }
+                    } message: {
+                         Text("Выберите все фильтры перед поиском.")
+                    }
+                    
+                    .alert("Ошибка", isPresented: .constant(vm.errorMessage != nil), actions: {
+                        Button("ОК", role: .cancel) { vm.errorMessage = nil }
+                    }, message: {
+                         Text(vm.errorMessage ?? "Произошла неизвестная ошибка.")
+                    })
+                    
+                    .onChange(of: vm.currentSpot) { newSpot, oldSpot in
+                         if newSpot != nil {
+                              navigateToSpot = newSpot
+                         }
+                    }
 
-                }
-
-                NavigationLink("посмотреть историю") {
-                    HistoryView(spots: vm.history)
-                }
+                    NavigationLink("посмотреть историю") {
+                        HistoryView(spots: vm.history)
+                    }
                     .font(.subheadline)
                     .foregroundColor(.black)
-                    .padding(.top, 8)
                     .underline(true)
-                    .frame(alignment: .bottom)
-                
+                    .padding(.top, 10)
+                    
+                }
                 Spacer()
             }
             .padding()
             .navigationTitle("Lunch Roulette")
-            .navigationDestination(item: $selectedSpot) {
-                spot in LunchCard(spot: spot, scourceView: .random)
-            }
+            .navigationDestination(item: $navigateToSpot) { spot in
+                  LunchCard(spot: spot, scourceView: .random)
+             }
         }
+        .onAppear {
+              vm.loadHistory() 
+         }
     }
 }
 
